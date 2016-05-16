@@ -1,0 +1,17 @@
+{
+    "contents" : "---\ntitle: \"CpG islands\"\noutput: html_document\n---\n\nA Bioconductor package, AnnotationHub, permits us to explore available annotations.\n\n```{r}\nlibrary(AnnotationHub)\nah = AnnotationHub()\nah \nah[1]\nlength(ah)\nlength(ah$dbSNP.organisms.human_9606.VCF.)\nhead(ah$dbSNP.organisms.human_9606.VCF.)\nahs2 <- query(ah, c(\"GTF\", \"77\",\"Ensembl\", \"Homo sapiens\"))\nhead(sort(table(ah$species), decreasing=TRUE))\n```\n\nWhat is the record ID used by AnnotationHub for hg19 CpG Islands?\n\n```{r}\nquery(ah, \"hg19\")\nnames(ah)\n\n```\n\nCreate an R object representing CpG Islands\n\n```{r}\ncgi = ah[[\"AH5086\"]]\n```\n\nSubset these to just the databases related to the hg19 genome. Use the query function to search the available annotations in this \"hub\".\n\n```{r}\nah = subset(ah, ah$genome==\"hg19\")\nquery(ah, \"genes\")\n```\n\nCreate an R object representing CpG Islands.\n\n```{r}\nah = AnnotationHub()\ncgi = ah[[\"AH5086\"]]\nclass(cgi)\n```\n\nHow many CpG islands are represented in the object cgi defined in the previous question?\n\n```{r}\ncountPattern(\"CG\",cgi)\n```\n\nExtract the sequence of each CpG Islands this way:\n\n```{r}\ncgiseq = getSeq(Hsapiens, cgi)\n```\n\nit is indispensable that we assure the same genome builds are being used here:\n```{r}\ngenome(cgi)[1:24]\ngenome(Hsapiens)[1:24]\n```\n",
+    "created" : 1461567085427.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1031006557",
+    "id" : "51444879",
+    "lastKnownWriteTime" : 1461568904,
+    "path" : "C:/Users/Library/Downloads/DNAmethylation/Rs/CpGIslands2.Rmd",
+    "project_path" : "CpGIslands2.Rmd",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_markdown"
+}

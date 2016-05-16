@@ -1,0 +1,17 @@
+{
+    "contents" : "start <- function(pkg){\n  npkg <- pkg[!(pkg %in% installed.packages()[,\"Package\"])]\n  if (length(npkg))\n    install.packages(npkg, dependencies = TRUE)\n  lapply(pkg, require, character.only=TRUE)\n}\n\npkgs <- c(\"rafalib\")\nstart(pkgs)\n\nsource(\"http://www.bioconductor.org/biocLite.R\")\n\nbiocLite(\"AnnotationHub\")\n\nbiocLite(c(\"IlluminaHumanMethylation450kmanifest\", \n           \"IlluminaHumanMethylation450kanno.ilmn12.hg19\", \n           \"minfi\", \n           \"BSgenome.Hsapiens.UCSC.hg19\",\n           \"bsseq\",\n           \"AnnotationHub\"))",
+    "created" : 1461546366898.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "949984781",
+    "id" : "E90A6F4B",
+    "lastKnownWriteTime" : 1461569318,
+    "path" : "C:/Users/Library/Downloads/DNAmethylation/Rs/start.R",
+    "project_path" : "start.R",
+    "properties" : {
+        "tempName" : "Untitled2"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

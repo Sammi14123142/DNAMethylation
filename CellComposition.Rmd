@@ -1,0 +1,12 @@
+---
+title: "Cell Composition"
+output: html_document
+---
+
+The minfi package has a function to read data directly from GEO.
+
+```{r}
+library(minfi)
+grset=getGenomicRatioSetFromGEO("GSE32148")
+```
+

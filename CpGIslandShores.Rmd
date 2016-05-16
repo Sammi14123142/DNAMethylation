@@ -1,0 +1,187 @@
+---
+title: "CpGIslandShores"
+output: html_document
+---
+
+```{r}
+library(minfi)
+```
+
+Load the sample annotation table
+```{r}
+path="~/25Apr/tcgaMethylationSubset-master"
+targets <- read.delim(file.path(path, "targets.txt"), as.is=TRUE)
+
+dim(targets)
+
+table(targets$Tissue,targets$Status)
+```
+
+Read in breast and colon normal samples:
+```{r}
+index <- which(targets$Status == "normal" & targets$Tissue %in% c("breast", "colon"))
+subtar <- targets[index,]
+
+dat <- read.450k.exp(base=path, targets=targets, verbose=TRUE)
+```
+
+dat includes the raw data. Now convert it into an object that includes methylation values, as well as the location of CpGs
+```{r}
+class(dat)
+dted <- preprocessIllumina(dat)
+class(dted)
+
+dted <- mapToGenome(dted)
+class(dted)
+dted <- ratioConvert(dted, type="Illumina")
+class(dted)
+```
+
+some quality assessment plots:
+The distribution of each sample:
+```{r}
+install.packages("rafalib")
+library(rafalib)
+y <- getBeta(dted)
+shist(y)
+```
+
+Create an MDS plot to search for outlier samples. Split the data by tissue
+```{r}
+mds <- cmdscale(dist(t(y)))
+tissue <- as.factor(pData(dted)$Tissue)
+plot(mds, col=tissue)
+legend("bottomleft", levels(tissue), col=1:3, pch=1)
+```
+
+use statistical inference to find differentially methylated regions. 
+
+```{r}
+biocLite("limma")
+library(limma)
+##create design matrix
+tissue = as.factor(pData(dted)$Tissue)
+X = model.matrix(~tissue)
+##extract methylation values
+y = getBeta(dted)
+## obtain effect sizes and pvals with limma
+fit = lmFit(y,X)
+```
+
+Find the CpG with the largest effect size when comparing the two tissues. What chromosome is it on? What position is this CpG on?
+
+```{r}
+index <- which.max(abs(fit$coef[,2]))
+seqnames(dted)[index]
+start(dted)[index]
+```
+
+use the qvalue function to determine the q-value for the CpG found in the previous question. What is the q-value for this CpG?
+
+```{r}
+biocLite("qvalue")
+library(qvalue)
+##create design matrix
+tissue = as.factor(pData(dted)$Tissue)
+X = model.matrix(~tissue)
+##extract methylation values
+y = getBeta(dted)
+## obtain effect sizes and pvals with limma
+fit = lmFit(y,X)
+eb = ebayes(fit)
+## obtain q-values
+qvals = qvalue(eb$p.value[,2])$qvalue
+
+index = which.max(abs( fit$coef[,2]))
+qvals[index]
+```
+
+Find all the CpGs within 5000 basepairs of the location of this CpG in the previous question. Create a plot showing the methylation values for all samples for these CpGs. Use color to distinguish breast from colon. Plot the estimated effect size and the -log10 of the q-value in two separate plots for a total of three plots.
+```{r}
+mypar(3,1)
+index = which.max(abs( fit$coef[,2]))
+gr=granges(dted)[index]+5000
+index=which(granges(dted)%over%gr)
+pos= start(dted)[index]
+
+matplot(pos,y[index,],ylab="Methylation",col=as.numeric(tissue))
+
+plot(pos, fit$coef[index,2],ylab="Effect Size")
+
+plot(pos, -log10(qvals[index]) ,ylab="-log10 q-value")
+```
+
+Repeat the above exercise, but now make the same plots for the top 10 CpGs ranked by absolute value of effect size. 
+```{r}
+o <- order(abs(fit$coef[,2]), decreasing=TRUE)[1:10]
+
+mypar(3,1)
+gr=granges(dted)[o]+5000
+index=which(granges(dted)%over%gr)
+pos= start(dted)[index]
+
+matplot(pos,y[index,],ylab="Methylation",col=as.numeric(tissue))
+
+plot(pos, fit$coef[index,2],ylab="Effect Size")
+
+plot(pos, -log10(qvals[index]) ,ylab="-log10 q-value")
+```
+
+To explicitly search for regions using the bumphunter function using permutation to assess statistical significance on chromosome 15.
+
+```{r}
+index= which(seqnames(dted)=="chr15")
+dat2 = dted[index,]
+```
+
+use parallel computing to speed up the procedure.
+```{r}
+install.packages("doParallel")
+library(doParallel)
+ncores = detectCores()
+registerDoParallel(cores = ncores)
+```
+
+```{r}
+tissue <- as.factor(pData(dat)$Tissue)
+X <- model.matrix(~tissue)
+set.seed(1)
+res <- bumphunter(dat2, X, cutoff=.1, B=100)
+head(res$tab)
+```
+
+how many regions achieve an FWER lower than 0.05?
+```{r}
+
+```
+
+Previously we performed a CpG by CpG analysis and obtained qvalues. Create an index for the CpGs that achieve qvalues smaller than 0.05 and a large effect size larger than 0.5 (in absolute value):
+```{r}
+index <- which(qvals <.05 & abs(fit$coef[,2])>.5 & seqnames(dted)=="chr15")
+```
+
+Now create a table of the DMRs returned by bumphunter that had 3 or more probes and convert the table into GRanges:
+```{r}
+tab = res$tab[ res$tab$L >= 3,]
+tab = makeGRangesFromDataFrame(tab)
+```
+
+What proportion of the CpGs indexed by index are inside regions found in tab?
+```{r}
+biocLite("GenomicRanges")
+library(GenomicRanges)
+mean(findOverlaps(dted[index],tab))
+```
+
+download the table of CGI using AnnotationHub.
+```{r}
+library(AnnotationHub)
+cgi <- AnnotationHub()[["AH5086"]]
+```
+
+create a GRanges object from the list of DMRs we computed in the previous questions:
+```{r}
+tab <- res$tab[res$tab$fwer <=.05, ]
+tab <- makeGRangesFromDataFrame(tab)
+```
+

@@ -1,0 +1,119 @@
+---
+title: "Measuring Methylation from Sequencing"
+output: html_document
+---
+Reduced Representation Bisulfite Sequencing or RRBS is an experimental technique widely used to manipulate the regions of the genome we measure. An enzyme is used to cut DNA at CCGG and the general idea is to filter out small or large molecules once DNA is cut. We can use Bioconductor tools to predict the size of these regions.
+
+Load the genome package and create an object with the sequence for chr22:
+```{r}
+library("BSgenome.Hsapiens.UCSC.hg19")
+chr22 <- Hsapiens[["chr22"]]
+```
+
+use the matchPattern function to find all the locations in which CCGG occurs on chr22.
+
+How many CCGG do we find on chr22?
+
+```{r}
+#?matchPattern
+length(matchPattern("CCGG", chr22))
+```
+
+Plot a histogram of the DNA fragment sizes after we cut with CCGG. How would you describe this distribution?
+```{r}
+res <- matchPattern("CCGG", chr22)
+size <- diff(start(res))
+hist(size)
+hist(log10(size))
+```
+ The distribution has a long right tail with most values from 0-1000, but some very large values.
+ 
+ A typical size to filter are DNA regions between 40 and 220 basepairs.
+
+What proportion of the fragments created for chr22 are between 40 and 220 basepairs?
+```{r}
+mean(size > 40 & size <220)
+```
+
+If we sequence all of chromosome 22 we need to sequence 51,304,566 bases. However, if instead we keep only fragments of size between 40 and 220 basepairs, how much sequence would would be left?
+```{r}
+
+sum( size[size<=220 & size>=40] )
+```
+
+I wrongly use
+```{r}
+sum(size >= 40 & size <=220)
+```
+at first. However, it provides the amount of fragments rather than that of sequences.
+
+use a set of paired tumor and normal colon whole-genome bisulfite sequencing (WGBS) data and use the .cov files from Bismark as input to the bsseq R/Bioconductor package to create a bsseq object. 
+
+```{r}
+path = "~/25Apr/colonCancerWGBS-master"
+targets <- read.table(file.path(path, "targets.txt"), header=TRUE, sep="\t")
+#targets
+
+library(bsseq)
+cov.files <- list.files(path=path, pattern="*chr22.cov", full.names=TRUE)
+colonCancerWGBS <- read.bismark(files = cov.files, rmZeroCov=TRUE, sampleNames = as.character(targets$Run))
+colData(colonCancerWGBS) = DataFrame(targets)
+
+```
+
+To view the bsseq object and the phenotypic information about each sample:
+```{r}
+colonCancerWGBS
+
+# phenotypic info
+pData(colonCancerWGBS)
+
+# granges objest
+granges(colonCancerWGBS)
+```
+
+extract the coverage and the number of reads with evidence from methylation:
+```{r}
+cov <- getCoverage(colonCancerWGBS, type="Cov")
+m <- getCoverage(colonCancerWGBS, type="M")
+
+# an estimate of methylation status at each CpG 
+me <- m/cov
+
+# a quantity proportional to the standard error of this estimate
+se <- 1/sqrt(cov)
+```
+
+
+
+What proportion of the reported CpGs have some coverage in all sample?
+```{r}
+index <- apply(cov>0, 1, all)
+mean(index)
+```
+
+Compute the total coverage (across all samples) for each CpG. Plot it against location.
+```{r}
+tot <- rowSums(cov)
+boxplot(tot)
+##there are some very large values
+
+loc <- start(colonCancerWGBS)
+for(i in 1:11){
+  index=1:100000+100000*i ##very ad-hoc
+  plot(loc[index],tot[index],cex=.5,ylim=c(0,300))
+}
+```
+
+```{r}
+gr = GRanges(seqnames="22",ranges=IRanges(start=43793678,end= 45022550))
+index=granges(colonCancerWGBS)%over%gr
+library(rafalib)
+i=1
+index2=which(index & cov[,i]>=5 & cov[,i]<=50)
+x=start(colonCancerWGBS)[index2]
+y=m[index2,i]/cov[index2,i]
+w=sqrt(cov[index2,i])/7
+plot(x,y,cex=w)
+```
+

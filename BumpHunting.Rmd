@@ -1,0 +1,53 @@
+---
+title: 'Hunting for Differentially Methylated Genomic Regions'
+output: html_document
+---
+
+It's a sunny day suitable for hunting!
+
+So I decide to hunt for differentially methylated genomic regions between samples from cancer and normal tissues. More specifically, I want to identify regions with the genomic profile deviating from the normal value.
+
+There already exists a Bioconductor package for me -- bumphunter.
+
+```{r}
+# biocLite("bumphunter")
+library(bumphunter)
+```
+
+Load data
+```{r}
+load("dna1.rda")
+
+# Design matrix: each row for one sample with columns representing its status (cancer or not)
+design <- model.matrix(~pd$Status)
+
+# Specify the chromosome at each position
+chr <- as.factor(seqnames(gr))
+
+# Specify chromosomal positions
+pos <- start(gr)
+```
+
+Perform clustering on each chromosome independently. Group genomic locations within predefined maxGap to each other into one cluster.
+```{r}
+cl <- clusterMaker(chr, pos, maxGap=500)
+```
+
+cl provides a set of cluster IDs. Genomic positions assigned with the same ID belong to the same cluster.
+
+The bump hunting algorithm includes 4 steps:
+1. Fit a regression model between logit-transformed methylation measurements aginst status for one individual 
+
+```{r}
+res<-bumphunter(meth,X,chr=chr,pos=pos,cluster=cl,cutoff=0.1,B=0)
+tab<-res$table
+```
+
+Visualization
+```{r}
+Index=(tab[1,7]-3):(tab[1,8]+3)
+matplot(pos[Index],meth[Index,,drop=TRUE],col=cols,pch=1,xlab="genomic location",ylab="Methylation",ylim=c(0,1))
+plot(pos[Index],res$fitted[Index,1],xlab="genomic location",ylab="Methylation difference",ylim=c(-1,1))
+abline(h=c(-0.1,0,.1),lty=2)
+```
+

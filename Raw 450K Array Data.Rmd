@@ -1,0 +1,125 @@
+---
+title: "Raw 450K Array Data"
+output: html_document
+---
+
+```{r}
+biocLite(c("minfi","IlluminaHumanMethylation450kmanifest","IlluminaHumanMethylation450kanno.ilmn12.hg19"))
+```
+
+Load idat files produced by the Illumina 450K DNA methylation array and determine the basename of the idat files.
+
+```{r}
+path = "~/24Apr/rawdata-master/idats"
+list.files(path)
+```
+
+the targets csv file which contains clinical information. This has one row for each sample and one of the columns includes the "basenames" for the files
+
+```{r}
+targets <- read.csv(file.path(path, "targets.csv"), as.is=TRUE)
+names(targets)
+targets$Basename
+```
+
+How many cancer samples are included in this dataset?
+
+```{r}
+sum(targets$Status == "cancer")
+```
+
+To make this script work in any working directory we can edit that column to contain the absolute paths.
+```{r}
+targets$Basename = file.path(path, targets$Basename)
+```
+
+read in the raw data
+```{r}
+library(minfi)
+rgset <- read.450k(targets$Basename, verbose=TRUE)
+rownames(targets) = sampleNames(rgset)
+pData(rgset) = targets
+```
+
+We now have the raw data, red an green intensities which we have access too
+```{r}
+dim(getRed(rgset))
+dim(getGreen(rgset))
+```
+
+use the built in preprocessing algorithm and go straight to object that give you access to methylation estimates
+
+```{r}
+mset <- preprocessIllumina(rgset)
+```
+
+This performs the default preprocessing algorithm developed by Illumina. However, for this to be useful we want to have the locations of each CpG and to do that we need map the CpGs to genome. minfi keeps this information modular so that when the genome annotation gets updated one can easily change the mapping.
+
+```{r}
+mset <- mapToGenome(mset)
+```
+
+obtain the methylation values and CpG locations. type="Illumina" use default procedure.
+
+```{r}
+dim(getBeta(mset, type="Illumina"))
+head(granges(mset))
+```
+
+If we use the Illumina approach to estimating methylation value of the CpG at location 153807318 on chr4 for sample "5775041068_R04C01"
+
+```{r}
+i <- which(seqnames(granges(mset))=="chr4" & start(granges(mset)) == 153807318)
+j <- which(rownames(pData(mset))=="5775041068_R04C01")
+getBeta(mset, type="Illumina")[i,j]
+```
+
+
+
+
+```{r}
+library(bumphunter)
+class(mset)
+```
+
+bumphunter needs one of the following classes:
+```{r}
+showMethods("bumphunter")
+```
+
+So let us convert mset to a "GenomicRatioSet"
+```{r}
+grset <- ratioConvert(mset, what="beta", type="Illumina")
+help("bumphunter,GenomicRatioSet-method")
+```
+
+find DMRs between cancer and normal samples
+
+```{r}
+X <- model.matrix(~pData(grset)$Status)
+res <- bumphunter(grset, X, cutoff=0.1)
+```
+
+What is the "area" of the first DMR listed in the DMR table returned by bumphunter
+```{r}
+res$table$area[1]
+```
+
+The default behvior for bumphunter is not to smooth the data. Here we will learn how to run bumphunter with smoothing. Subset grset for illustration:
+```{r}
+index <- which(seqnames(grset)=="chr22")
+grset2 <- grset[index,]
+```
+
+run bumphunter without smoothing at first:
+```{r}
+X2 <- model.matrix(~pData(grset2)$Status)
+res2 <- bumphunter(grset2, X2, cutoff=.25)
+```
+
+with smoothing:
+```{r}
+res3 <- bumphunter(grset2, X2, cutoff=.25, smooth=TRUE)
+```
+
+After smoothing, res has less while longer DMRs.

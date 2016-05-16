@@ -1,0 +1,71 @@
+---
+title: "Blocks"
+output: html_document
+---
+
+Search for differentially methylated blocks
+```{r}
+library(minfi)
+path="~/25Apr/tcgaMethylationSubset-master"
+targets=read.delim(file.path (path,"targets.txt"),as.is=TRUE)
+index = which( targets$Tissue=="colon")
+targets = targets[index,]
+dat = read.450k.exp(base=path,targets = targets, verbose=TRUE)
+```
+
+convert raw data into an object that includes methylation values, as well as the location of CpGs
+
+```{r}
+library(IlluminaHumanMethylation450kmanifest)
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+dat <- preprocessIllumina(dat)
+dat <- mapToGenome(dat)
+```
+
+collapse the data
+
+```{r}
+cdat <- cpgCollapse(dat)
+class(cdat)
+```
+
+How many regions are represented in the collapsed object?
+```{r}
+cdat$object
+```
+
+We can see the type of regions that are represented in this collapsed object in the type column:
+```{r}
+head(granges(cdat$object))
+```
+
+What proportion of the regions are OpenSea regions?
+```{r}
+prop.table(table(mcols(granges(cdat$obj))$type))
+```
+
+use the blockFinder function to find differentially methylated regions between cancer and normal:
+```{r}
+status <- factor(pData(cdat$object)$Status, level=c("normal", "cancer"))
+X <- model.matrix(~status)
+res <- blockFinder(cdat$object, X, cutoff=.05)
+```
+
+blockFinder calls bumphunter and returns a similar object.
+```{r}
+head(res$table)
+```
+
+What proportion of the blocks reported in res$table are hypomethyated (lower methylation in cancer versus normal)?
+```{r}
+mean(res$table$value < 0)
+
+tab <- makeGRangesFromDataFrame(res$table)
+index <- granges(cdat$object) %over% (tab[1]+10000)
+pos <- start(cdat$object)[index]
+col <- as.numeric(status)
+matplot(pos, getBeta(cdat$object)[index, ], col=col, pch=1, cex=.5)
+
+plot(pos, res$fitted[index])
+```
+

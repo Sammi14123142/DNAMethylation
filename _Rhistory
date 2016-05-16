@@ -1,0 +1,211 @@
+setwd("~/25Apr")
+library(minfi)
+grset=getGenomicRatioSetFromGEO("GSE32148")
+grset=getGenomicRatioSetFromGEO("GSE32148")
+setwd("~/25Apr/tcgaMethylationSubset-master")
+library(minfi)
+path="~/25Apr/tcgaMethylationSubset-master"
+targets=read.delim(file.path (path,"targets.txt"),as.is=TRUE)
+index = which( targets$Tissue=="colon")
+targets = targets[index,]
+dat = read.450k.exp(base=path,targets = targets, verbose=TRUE)
+biocLite("minfi")
+source("http://www.bioconductor.org/biocLite.R")
+biocLite("minfi")
+library(minfi)
+library(minfi)
+path="~/25Apr/tcgaMethylationSubset-master"
+targets=read.delim(file.path (path,"targets.txt"),as.is=TRUE)
+index = which( targets$Tissue=="colon")
+targets = targets[index,]
+dat = read.450k.exp(base=path,targets = targets, verbose=TRUE)
+dat <- preprocessIllumina(dat)
+library(IlluminaHumanMethylation450kmanifest)
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+dat <- preprocessIllumina(dat)
+dat <- mapToGenome(dat)
+library(IlluminaHumanMethylation450kmanifest)
+biocLite(c("IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19"))
+library(IlluminaHumanMethylation450kmanifest)
+library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+dat <- preprocessIllumina(dat)
+dat <- mapToGenome(dat)
+cdat <- cpgCollapse(dat)
+class(cdat)
+cdat$blockInfo
+cdat$object
+head(granges(cdat$object))
+head(granges(cdat$obj))
+setwd("~/25Apr")
+mean(cdat$object$type == "OpenSea")
+levels(cdat$object$type)
+class(cdat$object)
+head(granges(cdat$object))
+class(granges(cdat$object))
+prop.table(table(mcols(granges(cdat$obj))$type))
+status <- factor(pData(cdat$object)$Status, level=c("normal", "cancer"))
+status <- factor(pData(cdat$object)$Status, level=c("normal", "cancer"))
+length(status)
+X <- model.matrix(~status)
+res <- blockFinder(cdat$object, X, cutoff=.05)
+head(res$table)
+canc <- pData(cdat$object)$Status == "cancer"
+mean(res$table$value < 0)
+tab <- makeGRangesFromDataFrame(res$table)
+mean(res$table$value < 0)
+tab <- makeGRangesFromDataFrame(res$table)
+index <- granges(cdat$object) %over% (tab[1]+10000)
+pos <- start(cdat$object)[index]
+col <- as.numeric(status)
+matplot(pos, getBeta(cdat$object)[index, ], col=col, pch=1, cex=.5)
+plot(pos, res$fitted[index])
+grset=getGenomicRatioSetFromGEO("GSE32148")
+library(minfi)
+grset=getGenomicRatioSetFromGEO("GSE32148")
+library(BSgenome.Hsapiens.UCSC.hg19)
+library("BSgenome.Hsapiens.UCSC.hg19")
+biocLite("BSgenome.Hsapiens.UCSC.hg19")
+chr22 <- Hsapiens[["chr22"]]
+library("BSgenome.Hsapiens.UCSC.hg19")
+chr22 <- Hsapiens[["chr22"]]
+?matchPattern
+matchPattern("CCGG", chr22)
+length(matchPattern("CCGG", chr22))
+res <- matchPattern("CCGG", chr22)
+size <- diff(start(res))
+hist(size)
+hist(log10(size))
+hist(size)
+mean(size > 40 & size <220)
+sum(size > 40 & size <220)
+sum(size >= 40 & size <=220)
+sum( size[size<=220 & size>=40] )
+length(size)
+head(size)
+setwd("~/25Apr/colonCancerWGBS-master")
+path = "~/25Apr/colonCancerWGBS-master"
+targets <- read.table(file.path(path, "targets.txt"), header=TRUE, sep="\t")
+targets
+biocLite("bsseq")
+biocLite("bsseq")
+source("http://www.bioconductor.org/biocLite.R")
+biocLite("bsseq")
+path = "~/25Apr/colonCancerWGBS-master"
+targets <- read.table(file.path(path, "targets.txt"), header=TRUE, sep="\t")
+#targets
+library(bsseq)
+cov.files <- list.files(path=path, pattern="*chr22.cov", full.names=TRUE)
+colonCancerWGBS <- read.bismark(files = cov.files, rmZeroCov=TRUE, sampleNames = as.character(targets$Run))
+colData(colonCancerWGBS) = DataFrame(targets)
+colonCancerWGBS
+pData(colonCancerWGBS)
+granges(colonCancerWGBS)
+cov <- getCoverage(colonCancerWGBS, type="Cov")
+m <- getCoverage(colonCancerWGBS, type="M")
+index <- apply(cov>0, 1, all)
+mean(index)
+tot <- rowSums(cov)
+hist(tot)
+boxplot(tot)
+loc <- start(colonCancerWGBS)
+for(i in 1:11){
+index=1:100000+100000*i ##very ad-hoc
+plot(loc[index],tot[index],cex=.5,ylim=c(0,300))
+}
+m/cov
+start <- function(pkg){
+npkg <- pkg[!(pkg %in% installed.packages()[,"Package"])]
+if (length(npkg))
+install.packages(npkg, dependencies = TRUE)
+lapply(pkg, require, character.only=TRUE)
+}
+pkgs <- c("rafalib")
+start(pkgs)
+gr = GRanges(seqnames="22",ranges=IRanges(start=43793678,end= 45022550))
+index=granges(colonCancerWGBS)%over%gr
+library(rafalib)
+i=1
+index2=which(index & cov[,i]>=5 & cov[,i]<=50)
+x=start(colonCancerWGBS)[index2]
+y=m[index2,i]/cov[index2,i]
+w=sqrt(cov[index2,i])/7
+plot(x,y,cex=w)
+gr = GRanges(seqnames="22",ranges=IRanges(start=43793678,end= 45022550))
+index=granges(colonCancerWGBS)%over%gr
+library(rafalib)
+i=1
+index2=which(index & cov[,i]>=5 & cov[,i]<=50)
+x=start(colonCancerWGBS)[index2]
+rm(start)
+gr = GRanges(seqnames="22",ranges=IRanges(start=43793678,end= 45022550))
+index=granges(colonCancerWGBS)%over%gr
+library(rafalib)
+i=1
+index2=which(index & cov[,i]>=5 & cov[,i]<=50)
+x=start(colonCancerWGBS)[index2]
+y=m[index2,i]/cov[index2,i]
+w=sqrt(cov[index2,i])/7
+plot(x,y,cex=w)
+library(BSgenome.Hsapiens.UCSC.hg19)
+genome <- BSgenome.Hsapiens.UCSC.hg19
+genome <- BSgenome.Hsapiens.UCSC.hg19
+seqlengths(genome)
+?seqlengths
+genome$chr1
+seqinfo(genome)
+seqnames(genome)
+seqlevels(genome)
+chr4 <- genome$chr4
+class(chr4)
+s <- subseq(chr4, start=425, width=999)
+print(s)
+print(as.character(s))
+seqinfo(genome)
+chr4
+genome$chr22
+chr22 = Hsapiens[["chr22"]]
+chr22
+s = subseq(chr22,start=23456789,width=1000)
+print( as.character(s) )
+seqlengths(genome)
+chr4 <- genome$chr4
+s <- subseq(chr4, start=23456, width=999)
+print(as.character(s))
+s <- subseq(chr4, start=20160425, width=999)
+print(as.character(s))
+print(s)
+?countPattern
+countPattern("CG",s)
+vcountPattern("CG",s)
+matchPattern("CG",s)
+biocLite("AnnotationHub")
+source("http://www.bioconductor.org/biocLite.R")
+biocLite("AnnotationHub")
+library(AnnotationHub)
+ah = AnnotationHub()
+head(ah)
+query(ah, "cpg")
+query(ah, "cpg Islands")
+query(ah, "Islands")
+query(ah, "CpG")
+?query
+head(ah)
+head(ah$dbSNP.organisms.human_9606.VCF.)
+ah
+mcols(ah)
+ah[1]
+length(ah)
+ahs2 <- query(ah, c("GTF", "77","Ensembl", "Homo sapiens"))
+head(sort(table(ah$species), decreasing=TRUE))
+ah
+ah$dbSNP.organisms.human_9606.VCF.
+query(ah, "hg19")
+names$ah
+names(ah)
+names(ah$dbSNP.organisms.human_9606.VCF.)
+length(ah$dbSNP.organisms.human_9606.VCF.)
+ah
+biocLite("AnnotationHub")
+library(AnnotationHub)
+ah = AnnotationHub()
+ah

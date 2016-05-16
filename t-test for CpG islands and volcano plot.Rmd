@@ -1,0 +1,64 @@
+---
+title: "The t-test for CpG islands and volcano plot"
+output: html_document
+---
+
+From [My blogger The t-test for CpG islands and volcano plot](http://bitit1994.blogspot.hk/2016/04/the-t-test-for-cpg-islands-and-volcano.html)
+
+In DNA methylation data analysis, t-test statistics is used to identify differences in DNA methylation at single CpG sites. 
+
+Now I'm going to use a modified t-test in an R package, limma, to identify differentially methylated CpGs between samples from colon cancer and normal tissues.
+
+```{r warning=FALSE}
+library(limma)
+```
+
+1. Load data.
+
+```{r}
+load("dna1.rda")
+```
+
+2. Baseline model design matrix
+
+The design matrix indicates which arrays are from  cancer tissues.
+
+```{r message=FALSE, warning=FALSE}
+design <- model.matrix(~pd$Status)
+```
+
+3. Fit the baseline model
+
+Fit a linear model for each gene to estimate the fold changes and standard errors.
+
+```{r}
+fit <- lmFit(meth, design)
+```
+
+4. empirical Bayes moderation
+
+Apply empirical Bayes smoothing to the standard errors.
+
+```{r}
+eb <- ebayes(fit)
+```
+
+A volcano plot reveals effect size on x-axis and the statistical significance on y-axis so that highly dysregulated genes appear farther to the right and left sides while highly significant changes are higher on the plot.
+
+```{r warning=FALSE}
+library(ggplot2)
+
+fc = fit$coef[,2]
+sig = -log10(eb$p.value[,2])
+df <- data.frame(fc, sig)
+df$thre <- as.factor(abs(fc) < 0.4 & sig < -log10(0.05))
+
+ggplot(data=df, aes(x=fc, y = sig, color=thre)) +
+  geom_point(alpha=.6, size=1.2) +
+  theme(legend.position="none") +
+  xlab("Effect size") +
+  ylab("-log10 p value")
+
+```
+
+Why do these two colors match so well? I like it!

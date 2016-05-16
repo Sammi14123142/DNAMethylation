@@ -1,0 +1,28 @@
+---
+title: "DNA Methylation"
+output: html_document
+---
+
+Take the human genome package BSgenome.Hsapiens.UCSC.hg19 for example. This package contains the entire genome sequences for human provided by University of California, Santa Cruz (UCSC).
+
+```{r message=FALSE, warning=FALSE}
+library(BSgenome.Hsapiens.UCSC.hg19)
+chr22 = Hsapiens[["chr22"]]
+s = subseq(chr22,start=23456789,width=1000)
+print( as.character(s) )
+```
+
+What is the GC-content of s?
+
+```{r}
+sum(alphabetFrequency(s)[c("C","G")])/1000
+letterFrequency(s,"CG",as.prob=TRUE)
+```
+
+How many CpGs and GpCs in s respectively?
+
+```{r}
+countPattern("CG",s)
+countPattern("GC",s)
+```
+

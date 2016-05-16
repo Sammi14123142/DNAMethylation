@@ -1,0 +1,68 @@
+---
+title: "Fun with genome 1"
+output: html_document
+---
+
+From [My blogger fun-with-genome-1](http://bitit1994.blogspot.hk/2016/04/fun-with-genome-1.html)
+
+It's final exam's week. Every one is buried in their study. I'm now taking a break and making some fun with the human genome package BSgenome.Hsapiens.UCSC.hg19. 
+
+This package contains the entire genome sequences for human provided by University of California, Santa Cruz (UCSC).
+
+```{r message=FALSE, warning=FALSE}
+library(BSgenome.Hsapiens.UCSC.hg19)
+```
+
+There is a set of generic functions for us to get or modify the sequence information like seqinfo, seqnames, seqlengths...
+
+```{r}
+genome <- BSgenome.Hsapiens.UCSC.hg19
+seqinfo(genome)
+seqnames(genome)
+seqlengths(genome)
+```
+
+It is in April now, so I will take chromosome 4 for example.
+
+```{r}
+chr4 <- genome$chr4
+```
+
+The DNA string is still too large. Let me cut it down.
+
+```{r}
+s <- subseq(chr4, start=20160425, width=999)
+```
+
+I'm curious about What it looks like.
+
+```{r}
+print(s)
+print(as.character(s))
+```
+
+Emm.. I can see nothing but four letters. 
+I should ask more specifically.
+What is the GC-content of my new sequence? 
+
+```{r}
+sum(alphabetFrequency(s)[c("C","G")])
+```
+
+How about a proportion?
+```{r}
+letterFrequency(s,"CG",as.prob=TRUE)
+```
+
+Here is a function I find useful. countPattern
+
+```{r}
+countPattern("CG",s)
+```
+
+It answers the question: how many times a given pattern occurs in a reference sequence.
+
+I can also locate them
+```{r}
+matchPattern("CG",s)
+```
